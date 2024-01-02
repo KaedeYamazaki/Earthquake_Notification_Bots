@@ -77,6 +77,7 @@ def main():
         eq_time_stamp, eq_name, eq_max_scale = get_earthquake_info()
         intensity = determine_intensity(eq_max_scale)
 
+        # 推定震度4以上で通知．推定震度の参考元： https://www.p2pquake.net/develop/json_api_v2
         if eq_max_scale >= 40 and memory_eq_time_stamp != eq_time_stamp:
 
             message=f"地震情報 \n " \
