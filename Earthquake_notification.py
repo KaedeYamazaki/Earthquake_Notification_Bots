@@ -42,10 +42,14 @@ def get_earthquake_info():
     p2pquake_json = requests.get(p2pquake_url).json()
 
     eq_time_stamp = p2pquake_json[0]["issue"]["time"]
+    eq_Tsunami_info = p2pquake_json[0]["earthquake"]["domesticTsunami"]
+    eq_depth = p2pquake_json[0]["earthquake"]["hypocenter"]["depth"]
+    eq_magnitude = p2pquake_json[0]["earthquake"]["hypocenter"]["magnitude"]
     eq_name = p2pquake_json[0]["earthquake"]["hypocenter"]["name"]
     eq_max_scale = p2pquake_json[0]["earthquake"]["maxScale"]
 
-    return eq_time_stamp, eq_name, eq_max_scale
+
+    return eq_time_stamp, eq_Tsunami_info, eq_depth, eq_magnitude, eq_name, eq_max_scale
 
 def determine_intensity(eq_max_scale):
     if eq_max_scale < 40:
@@ -74,20 +78,24 @@ def main():
         slack_token = settings["slack_token"]["doilab_token"]
         slack_channel = settings["slack_ch"]["doilab_ch"]
 
-        eq_time_stamp, eq_name, eq_max_scale = get_earthquake_info()
+        eq_time_stamp, eq_Tsunami_info, eq_depth, eq_magnitude, eq_name, eq_max_scale = get_earthquake_info()
         intensity = determine_intensity(eq_max_scale)
 
         # 推定震度4以上で通知．推定震度の参考元： https://www.p2pquake.net/develop/json_api_v2
+        # 震源地の深さについて単位の情報なし．[km]と思われる．
         if eq_max_scale >= 40 and memory_eq_time_stamp != eq_time_stamp:
 
             message=f"地震情報 \n " \
                     f"TimeStamp: {eq_time_stamp}\n" \
                     f"震源地: {eq_name}\n" \
+                    f"津波の有無: {eq_Tsunami_info}\n" \
                     f"推定震度情報: {intensity}\n" \
-                    f"val: {eq_max_scale}\n" \
+                    f"マグニチュード: {eq_magnitude}\n" \
+                    f"震源の深さ[km]: {eq_depth}\n" \
+                    f"Eq_max_scale: {eq_max_scale}\n" \
                     f"\n"\
-                    f"安全を確保してください．\n" \
-                    f"情報を集めてください．\n" \
+                    f"直ちに身の安全を確保してください．\n" \
+                    f"落ち着いたら，情報を集めてください．\n" \
                     f"信用できる情報源 -> https://twitter.com/UN_NERV \n"
 
             line_bot = LINENotifyBot(access_token=line_token)
