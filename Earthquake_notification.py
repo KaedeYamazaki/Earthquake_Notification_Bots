@@ -1,6 +1,8 @@
 import json
 import time
 import requests
+# -*- coding: utf-8 -*-
+
 
 class LINENotifyBot(object):
     API_URL = 'https://notify-api.line.me/api/notify'
@@ -34,7 +36,7 @@ class SlackNotifyBot(object):
             'text': message
         }
         r = requests.post(url, headers=headers, data=data)
-        print("return ", r.json())
+
 
 
 def get_earthquake_info():
@@ -101,8 +103,9 @@ def main():
                         f"震源の深さ[km]: {eq_depth}\n" \
                         f"Eq_max_scale: {eq_max_scale}\n" \
                         f"\n"\
-                        f"直ちに身の安全を確保してください．\n" \
-                        f"落ち着いたら，情報を集めてください．\n" \
+                        f"\n"\
+                        f"身の安全を確保してください．\n" \
+                        f"落ち着いたら，情報を集め，" \
                         f"必要に応じて避難してください．\n" \
                         f"\n"\
                         f"信用できる情報源 -> https://twitter.com/UN_NERV \n"
@@ -111,8 +114,9 @@ def main():
                 line_bot.send_to_line(message)
                 slack_bot = SlackNotifyBot(access_token=slack_token)
                 slack_bot.send_to_slack(message,slack_channel)
-
+            print("Time_stamp:", eq_time_stamp,"震源地:", eq_name,"eq_max_scale:", eq_max_scale,"\n")
             memory_eq_time_stamp = eq_time_stamp
 
 if __name__ == "__main__":
+    print("動作開始")
     main()
