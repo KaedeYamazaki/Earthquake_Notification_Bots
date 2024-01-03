@@ -104,6 +104,7 @@ def main():
                         f"直ちに身の安全を確保してください．\n" \
                         f"落ち着いたら，情報を集めてください．\n" \
                         f"必要に応じて避難してください．\n" \
+                        f"\n"\
                         f"信用できる情報源 -> https://twitter.com/UN_NERV \n"
 
                 line_bot = LINENotifyBot(access_token=line_token)
