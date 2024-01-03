@@ -22,7 +22,7 @@ class LINENotifyBot(object):
             files=files,
         )
 
-class SlackNotifyBot:
+class SlackNotifyBot(object):
     def __init__(self, access_token):
         self.__headers = {'Authorization': 'Bearer ' + access_token}
 
@@ -83,25 +83,35 @@ def main():
 
         # 推定震度3以上で通知．推定震度の参考元： https://www.p2pquake.net/develop/json_api_v2
         # 震源地の深さについて単位の情報なし．[km]と思われる．
-        if eq_max_scale >= 30 and memory_eq_time_stamp != eq_time_stamp:
+        if memory_eq_time_stamp != eq_time_stamp:
+            if eq_magnitude == -1 :
+                message=f"地震速報 \n " \
+                        f"TimeStamp: {eq_time_stamp}\n" \
+                        f"推定震度情報: {intensity}\n" \
+                        f"Eq_max_scale: {eq_max_scale}\n"
 
-            message=f"地震情報 \n " \
-                    f"TimeStamp: {eq_time_stamp}\n" \
-                    f"震源地: {eq_name}\n" \
-                    f"津波の有無: {eq_Tsunami_info}\n" \
-                    f"推定震度情報: {intensity}\n" \
-                    f"マグニチュード: {eq_magnitude}\n" \
-                    f"震源の深さ[km]: {eq_depth}\n" \
-                    f"Eq_max_scale: {eq_max_scale}\n" \
-                    f"\n"\
-                    f"直ちに身の安全を確保してください．\n" \
-                    f"落ち着いたら，情報を集めてください．\n" \
-                    f"信用できる情報源 -> https://twitter.com/UN_NERV \n"
+            elif eq_max_scale >= 30 :
 
-            line_bot = LINENotifyBot(access_token=line_token)
-            line_bot.send_to_line(message)
-            slack_bot = SlackNotifyBot(access_token=slack_token)
-            slack_bot.send_to_slack(message,slack_channel)
+                message=f"地震情報 \n " \
+                        f"TimeStamp: {eq_time_stamp}\n" \
+                        f"震源地: {eq_name}\n" \
+                        f"津波の有無: {eq_Tsunami_info}\n" \
+                        f"推定震度情報: {intensity}\n" \
+                        f"マグニチュード: {eq_magnitude}\n" \
+                        f"震源の深さ[km]: {eq_depth}\n" \
+                        f"Eq_max_scale: {eq_max_scale}\n" \
+                        f"\n"\
+                        f"直ちに身の安全を確保してください．\n" \
+                        f"落ち着いたら，情報を集めてください．\n" \
+                        f"必要に応じて避難してください．\n" \
+                        f"信用できる情報源 -> https://twitter.com/UN_NERV \n"
+
+                line_bot = LINENotifyBot(access_token=line_token)
+                line_bot.send_to_line(message)
+                slack_bot = SlackNotifyBot(access_token=slack_token)
+                slack_bot.send_to_slack(message,slack_channel)
+
+            time.sleep(1.1)
 
             memory_eq_time_stamp = eq_time_stamp
 
