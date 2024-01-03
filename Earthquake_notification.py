@@ -81,17 +81,17 @@ def main():
         eq_time_stamp, eq_Tsunami_info, eq_depth, eq_magnitude, eq_name, eq_max_scale = get_earthquake_info()
         intensity = determine_intensity(eq_max_scale)
 
-        # 推定震度3以上で通知．推定震度の参考元： https://www.p2pquake.net/develop/json_api_v2
-        # 震源地の深さについて単位の情報なし．[km]と思われる．
+        # 推定震度4以上で通知．推定震度の参考元： https://www.p2pquake.net/develop/json_api_v2
+        # 震源地の深さについて単位の情報なし．[km]と思われる．また離散的にスケーリングされているように思われる．
         if memory_eq_time_stamp != eq_time_stamp:
             if eq_magnitude == -1 :
                 message=f"地震速報 \n " \
                         f"TimeStamp: {eq_time_stamp}\n" \
                         f"推定震度情報: {intensity}\n" \
-                        f"Eq_max_scale: {eq_max_scale}\n"
+                        f"Eq_max_scale: {eq_max_scale}\n"\
+                        f"直ちに身の安全を確保してください．\n"
 
-            elif eq_max_scale >= 30 :
-
+            elif eq_max_scale >= 40 :
                 message=f"地震情報 \n " \
                         f"TimeStamp: {eq_time_stamp}\n" \
                         f"震源地: {eq_name}\n" \
@@ -110,8 +110,6 @@ def main():
                 line_bot.send_to_line(message)
                 slack_bot = SlackNotifyBot(access_token=slack_token)
                 slack_bot.send_to_slack(message,slack_channel)
-
-            time.sleep(1.1)
 
             memory_eq_time_stamp = eq_time_stamp
 
