@@ -60,7 +60,7 @@ def get_earthquake_info():
     if eq_magnitude == -1 :
         message =  (f"地震速報 \n "
                     f"TimeStamp: {eq_time_stamp}\n"
-                    f"推定震度情報: {intensity}\n"
+                    f"推定最大震度: {intensity}\n"
                     f"Eq_max_scale: {eq_max_scale}\n"
                     f"直ちに身の安全を確保してください．\n")
 
@@ -69,7 +69,7 @@ def get_earthquake_info():
                     f"TimeStamp: {eq_time_stamp}\n"
                     f"震源地: {eq_name}\n"
                     f"津波の有無: {eq_Tsunami_info}\n"
-                    f"推定震度情報: {intensity}\n"
+                    f"推定最大震度: {intensity}\n"
                     f"マグニチュード: {eq_magnitude}\n"
                     f"震源の深さ[km]: {eq_depth}\n"
                     f"Eq_max_scale: {eq_max_scale}\n"
@@ -78,12 +78,17 @@ def get_earthquake_info():
                     f"各地点の震度一覧\n")
 
         # "points"の各要素から"addr"と"scale"を抽出してメッセージに追加
-        for point in json_data[0]["points"]:
+        for i, point in enumerate(json_data[0]["points"][:4]):
             addr = point["addr"]
             addr_intensity = determine_intensity(point["scale"])
-            message += f"地点: {addr}, 震度: {addr_intensity}\n"
+            message += f"地点: {addr}, 推定震度: {addr_intensity}\n"
 
-        message += (f"身の安全を確保してください．\n"
+            # 上限を超えたらループを抜ける
+            if i == 5:
+                break
+
+        message += (f"\n"
+                    f"身の安全を確保してください．\n"
                     f"落ち着いたら，情報を集め，必要に応じて避難してください．\n"
                     f"\n"
                     f"信用できる情報源 -> https://twitter.com/UN_NERV \n")
@@ -94,17 +99,23 @@ def get_earthquake_info():
 
 
 def determine_intensity(eq_max_scale):
-    if eq_max_scale < 40:
+    if eq_max_scale <= 10:
+        return '震度１'
+    elif eq_max_scale <= 20:
+        return '震度２'
+    elif eq_max_scale <= 30:
+        return '震度３'
+    if eq_max_scale <= 40:
         return '震度４以下'
-    elif eq_max_scale < 45:
+    elif eq_max_scale <= 45:
         return '震度４以上'
-    elif eq_max_scale < 50:
+    elif eq_max_scale <= 50:
         return '震度５弱'
-    elif eq_max_scale < 55:
+    elif eq_max_scale <= 55:
         return '震度５強'
-    elif eq_max_scale < 60:
+    elif eq_max_scale <= 60:
         return '震度６弱'
-    elif eq_max_scale < 70:
+    elif eq_max_scale <= 70:
         return '震度６強'
     else:
         return '震度７以上'
@@ -120,9 +131,13 @@ def main():
     line_token = settings["LINE_token"]["my_token"]
     slack_token = settings["slack_token"]["doilab_token"]
     slack_channel = settings["slack_ch"]["doilab_ch"]
+    debug_channel = settings["slack_ch"]["debug"]
 
     slack_bot = SlackNotifyBot(access_token=slack_token)
     line_bot = LINENotifyBot(access_token=line_token)
+
+    line_bot.send_to_line("Bot restart")
+    slack_bot.send_to_slack("Bot restart",debug_channel)
 
     while True:
         message,eq_time_stamp,eq_max_scale,eq_magnitude,eq_name = get_earthquake_info()
@@ -135,6 +150,7 @@ def main():
                 slack_bot.send_to_slack(message,slack_channel)
             elif eq_max_scale > 0 :
                 line_bot.send_to_line(message)
+                slack_bot.send_to_slack(message,debug_channel)
             elif eq_max_scale >= 40 :
                 line_bot.send_to_line(message)
                 slack_bot.send_to_slack(message,slack_channel)

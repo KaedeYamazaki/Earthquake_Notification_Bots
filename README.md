@@ -3,6 +3,10 @@
 石川で被災された方も県外の方も，情報を得る１つの手段としてご利用ください．  
 地震発生から情報が届くまで，長いときは3分ほどかかります．
 
+# p2pquake.netの稼働状況
+以下を確認してください．
+https://stats.uptimerobot.com/JR0Qt8QGy
+
 # settings.josnの例
 settings.josnの例を示します．
 [JSON の操作](https://developer.mozilla.org/ja/docs/Learn/JavaScript/Objects/JSON)を参考に，自身の環境に合わせて設定してください．
