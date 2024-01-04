@@ -50,8 +50,45 @@ def get_earthquake_info():
     eq_name = p2pquake_json[0]["earthquake"]["hypocenter"]["name"]
     eq_max_scale = p2pquake_json[0]["earthquake"]["maxScale"]
 
+    dict2str = json.dumps(p2pquake_json)
+    json_data = json.loads(dict2str)
 
-    return eq_time_stamp, eq_Tsunami_info, eq_depth, eq_magnitude, eq_name, eq_max_scale
+    intensity = determine_intensity(eq_max_scale)
+
+    message = ""
+
+    if eq_magnitude == -1 :
+        message=f"地震速報 \n " \
+                f"TimeStamp: {eq_time_stamp}\n" \
+                f"推定震度情報: {intensity}\n" \
+                f"Eq_max_scale: {eq_max_scale}\n"\
+                f"直ちに身の安全を確保してください．\n"
+
+    elif eq_max_scale >= 0 :
+        message=f"地震情報 \n " \
+                f"TimeStamp: {eq_time_stamp}\n" \
+                f"震源地: {eq_name}\n" \
+                f"津波の有無: {eq_Tsunami_info}\n" \
+                f"推定震度情報: {intensity}\n" \
+                f"マグニチュード: {eq_magnitude}\n" \
+                f"震源の深さ[km]: {eq_depth}\n" \
+                f"Eq_max_scale: {eq_max_scale}\n" \
+                f"\n"\
+                f"\n"\
+                f"各地点の震度一覧\n"
+
+        # "points"の各要素から"addr"と"scale"を抽出してメッセージに追加
+        for point in json_data[0]["points"]:
+            addr = point["addr"]
+            addr_intensity = determine_intensity(point["scale"])
+            message += f"地点: {addr}, 震度: {addr_intensity}\n"
+
+        message += f"身の安全を確保してください．\n" \
+                f"落ち着いたら，情報を集め，" \
+                f"必要に応じて避難してください．\n" \
+                f"\n"\
+                f"信用できる情報源 -> https://twitter.com/UN_NERV \n"
+    return message,eq_time_stamp,eq_max_scale,eq_magnitude,eq_name
 
 def determine_intensity(eq_max_scale):
     if eq_max_scale < 40:
@@ -72,49 +109,35 @@ def determine_intensity(eq_max_scale):
 def main():
     memory_eq_time_stamp = 0
 
+    with open("./settings.json", "r", encoding="utf-8") as f:
+        settings = json.load(f)
+
+    line_token = settings["LINE_token"]["my_token"]
+    slack_token = settings["slack_token"]["doilab_token"]
+    slack_channel = settings["slack_ch"]["doilab_ch"]
+
+
+    slack_bot = SlackNotifyBot(access_token=slack_token)
+    line_bot = LINENotifyBot(access_token=line_token)
+
     while True:
-        with open("./settings.json", "r", encoding="utf-8") as f:
-            settings = json.load(f)
-
-        line_token = settings["LINE_token"]["my_token"]
-        slack_token = settings["slack_token"]["doilab_token"]
-        slack_channel = settings["slack_ch"]["doilab_ch"]
-
-        eq_time_stamp, eq_Tsunami_info, eq_depth, eq_magnitude, eq_name, eq_max_scale = get_earthquake_info()
-        intensity = determine_intensity(eq_max_scale)
+        message,eq_time_stamp,eq_max_scale,eq_magnitude,eq_name = get_earthquake_info()
 
         # 推定震度4以上で通知．推定震度の参考元： https://www.p2pquake.net/develop/json_api_v2
         # 震源地の深さについて単位の情報なし．[km]と思われる．また離散的にスケーリングされているように思われる．
         if memory_eq_time_stamp != eq_time_stamp:
             if eq_magnitude == -1 :
-                message=f"地震速報 \n " \
-                        f"TimeStamp: {eq_time_stamp}\n" \
-                        f"推定震度情報: {intensity}\n" \
-                        f"Eq_max_scale: {eq_max_scale}\n"\
-                        f"直ちに身の安全を確保してください．\n"
+                line_bot.send_to_line(message)
+                slack_bot.send_to_slack(message,slack_channel)
+
+            elif eq_max_scale > 0 :
+                line_bot.send_to_line(message)
 
             elif eq_max_scale >= 40 :
-                message=f"地震情報 \n " \
-                        f"TimeStamp: {eq_time_stamp}\n" \
-                        f"震源地: {eq_name}\n" \
-                        f"津波の有無: {eq_Tsunami_info}\n" \
-                        f"推定震度情報: {intensity}\n" \
-                        f"マグニチュード: {eq_magnitude}\n" \
-                        f"震源の深さ[km]: {eq_depth}\n" \
-                        f"Eq_max_scale: {eq_max_scale}\n" \
-                        f"\n"\
-                        f"\n"\
-                        f"身の安全を確保してください．\n" \
-                        f"落ち着いたら，情報を集め，" \
-                        f"必要に応じて避難してください．\n" \
-                        f"\n"\
-                        f"信用できる情報源 -> https://twitter.com/UN_NERV \n"
-
-                line_bot = LINENotifyBot(access_token=line_token)
                 line_bot.send_to_line(message)
-                slack_bot = SlackNotifyBot(access_token=slack_token)
                 slack_bot.send_to_slack(message,slack_channel)
-            print("Time_stamp:", eq_time_stamp,"震源地:", eq_name,"eq_max_scale:", eq_max_scale,"\n")
+
+            print(f"Time_stamp: {eq_time_stamp},震源地:{eq_name},eq_max_scale:{eq_max_scale}\n")
             memory_eq_time_stamp = eq_time_stamp
 
 if __name__ == "__main__":
