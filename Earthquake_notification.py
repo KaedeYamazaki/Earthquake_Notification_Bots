@@ -40,6 +40,7 @@ class SlackNotifyBot(object):
 
 
 def get_earthquake_info():
+    max_show_addr_info = 10
     p2pquake_url = 'https://api.p2pquake.net/v2/history?codes=551&limit=1'
     p2pquake_json = requests.get(p2pquake_url).json()
 
@@ -78,13 +79,13 @@ def get_earthquake_info():
                     f"各地点の震度一覧\n")
 
         # "points"の各要素から"addr"と"scale"を抽出してメッセージに追加
-        for i, point in enumerate(json_data[0]["points"][:4]):
+        for i, point in enumerate(json_data[0]["points"][:max_show_addr_info]):
             addr = point["addr"]
             addr_intensity = determine_intensity(point["scale"])
             message += f"地点: {addr}, 推定震度: {addr_intensity}\n"
 
             # 上限を超えたらループを抜ける
-            if i == 5:
+            if i == max_show_addr_info:
                 break
 
         message += (f"\n"
