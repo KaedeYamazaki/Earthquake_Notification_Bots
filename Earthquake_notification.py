@@ -1,8 +1,6 @@
 import json
 import time
 import requests
-# -*- coding: utf-8 -*-
-
 
 class LINENotifyBot(object):
     API_URL = 'https://notify-api.line.me/api/notify'
@@ -24,18 +22,20 @@ class LINENotifyBot(object):
             files=files,
         )
 
+
+
 class SlackNotifyBot(object):
     def __init__(self, access_token):
         self.__headers = {'Authorization': 'Bearer ' + access_token}
 
     def send_to_slack(self, message,slack_ch):
-        url = "https://slack.com/api/chat.postMessage"
+        API_URL = "https://slack.com/api/chat.postMessage"
         headers = self.__headers
         data = {
             'channel': slack_ch,
             'text': message
         }
-        r = requests.post(url, headers=headers, data=data)
+        r = requests.post(API_URL, headers=headers, data=data)
 
 
 
@@ -43,39 +43,39 @@ def get_earthquake_info():
     p2pquake_url = 'https://api.p2pquake.net/v2/history?codes=551&limit=1'
     p2pquake_json = requests.get(p2pquake_url).json()
 
-    eq_time_stamp = p2pquake_json[0]["issue"]["time"]
-    eq_Tsunami_info = p2pquake_json[0]["earthquake"]["domesticTsunami"]
-    eq_depth = p2pquake_json[0]["earthquake"]["hypocenter"]["depth"]
-    eq_magnitude = p2pquake_json[0]["earthquake"]["hypocenter"]["magnitude"]
-    eq_name = p2pquake_json[0]["earthquake"]["hypocenter"]["name"]
-    eq_max_scale = p2pquake_json[0]["earthquake"]["maxScale"]
+    eq_info = p2pquake_json[0]
+    eq_time_stamp = eq_info["issue"]["time"]
+    eq_Tsunami_info = eq_info["earthquake"]["domesticTsunami"]
+    eq_depth = eq_info["earthquake"]["hypocenter"]["depth"]
+    eq_magnitude = eq_info["earthquake"]["hypocenter"]["magnitude"]
+    eq_name = eq_info["earthquake"]["hypocenter"]["name"]
+    eq_max_scale = eq_info["earthquake"]["maxScale"]
+    intensity = determine_intensity(eq_max_scale)
 
     dict2str = json.dumps(p2pquake_json)
     json_data = json.loads(dict2str)
 
-    intensity = determine_intensity(eq_max_scale)
-
     message = ""
 
     if eq_magnitude == -1 :
-        message=f"地震速報 \n " \
-                f"TimeStamp: {eq_time_stamp}\n" \
-                f"推定震度情報: {intensity}\n" \
-                f"Eq_max_scale: {eq_max_scale}\n"\
-                f"直ちに身の安全を確保してください．\n"
+        message =  (f"地震速報 \n "
+                    f"TimeStamp: {eq_time_stamp}\n"
+                    f"推定震度情報: {intensity}\n"
+                    f"Eq_max_scale: {eq_max_scale}\n"
+                    f"直ちに身の安全を確保してください．\n")
 
     elif eq_max_scale >= 0 :
-        message=f"地震情報 \n " \
-                f"TimeStamp: {eq_time_stamp}\n" \
-                f"震源地: {eq_name}\n" \
-                f"津波の有無: {eq_Tsunami_info}\n" \
-                f"推定震度情報: {intensity}\n" \
-                f"マグニチュード: {eq_magnitude}\n" \
-                f"震源の深さ[km]: {eq_depth}\n" \
-                f"Eq_max_scale: {eq_max_scale}\n" \
-                f"\n"\
-                f"\n"\
-                f"各地点の震度一覧\n"
+        message =  (f"地震情報 \n "
+                    f"TimeStamp: {eq_time_stamp}\n"
+                    f"震源地: {eq_name}\n"
+                    f"津波の有無: {eq_Tsunami_info}\n"
+                    f"推定震度情報: {intensity}\n"
+                    f"マグニチュード: {eq_magnitude}\n"
+                    f"震源の深さ[km]: {eq_depth}\n"
+                    f"Eq_max_scale: {eq_max_scale}\n"
+                    f"\n"
+                    f"\n"
+                    f"各地点の震度一覧\n")
 
         # "points"の各要素から"addr"と"scale"を抽出してメッセージに追加
         for point in json_data[0]["points"]:
@@ -83,12 +83,15 @@ def get_earthquake_info():
             addr_intensity = determine_intensity(point["scale"])
             message += f"地点: {addr}, 震度: {addr_intensity}\n"
 
-        message += f"身の安全を確保してください．\n" \
-                f"落ち着いたら，情報を集め，" \
-                f"必要に応じて避難してください．\n" \
-                f"\n"\
-                f"信用できる情報源 -> https://twitter.com/UN_NERV \n"
+        message += (f"身の安全を確保してください．\n"
+                    f"落ち着いたら，情報を集め，必要に応じて避難してください．\n"
+                    f"\n"
+                    f"信用できる情報源 -> https://twitter.com/UN_NERV \n")
+
     return message,eq_time_stamp,eq_max_scale,eq_magnitude,eq_name
+
+
+
 
 def determine_intensity(eq_max_scale):
     if eq_max_scale < 40:
@@ -106,16 +109,17 @@ def determine_intensity(eq_max_scale):
     else:
         return '震度７以上'
 
+
+
+
 def main():
     memory_eq_time_stamp = 0
 
     with open("./settings.json", "r", encoding="utf-8") as f:
         settings = json.load(f)
-
     line_token = settings["LINE_token"]["my_token"]
     slack_token = settings["slack_token"]["doilab_token"]
     slack_channel = settings["slack_ch"]["doilab_ch"]
-
 
     slack_bot = SlackNotifyBot(access_token=slack_token)
     line_bot = LINENotifyBot(access_token=line_token)
@@ -129,10 +133,8 @@ def main():
             if eq_magnitude == -1 :
                 line_bot.send_to_line(message)
                 slack_bot.send_to_slack(message,slack_channel)
-
             elif eq_max_scale > 0 :
                 line_bot.send_to_line(message)
-
             elif eq_max_scale >= 40 :
                 line_bot.send_to_line(message)
                 slack_bot.send_to_slack(message,slack_channel)
