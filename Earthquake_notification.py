@@ -145,15 +145,15 @@ def main():
         # 推定震度4以上で通知．推定震度の参考元： https://www.p2pquake.net/develop/json_api_v2
         # 震源地の深さについて単位の情報なし．[km]と思われる．また離散的にスケーリングされているように思われる．
         if memory_eq_time_stamp != eq_time_stamp:
-            if eq_magnitude == -1 :
+            if eq_magnitude == -1 and eq_max_scale >= 40:
                 line_bot.send_to_line(message)
                 slack_bot.send_to_slack(message,slack_channel)
-            elif eq_max_scale > 0 :
-                line_bot.send_to_line(message)
-                slack_bot.send_to_slack(message,debug_channel)
             elif eq_max_scale >= 40 :
                 line_bot.send_to_line(message)
                 slack_bot.send_to_slack(message,slack_channel)
+
+            if eq_max_scale > 0 :
+                slack_bot.send_to_slack(message,debug_channel)
 
             print(f"Time_stamp: {eq_time_stamp},震源地:{eq_name},eq_max_scale:{eq_max_scale}\n")
             memory_eq_time_stamp = eq_time_stamp
